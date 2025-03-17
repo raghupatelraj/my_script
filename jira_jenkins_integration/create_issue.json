@@ -1,0 +1,14 @@
+{
+    "fields": {
+       "project":
+       {
+          "key": "OP"
+       },
+       "summary": "hello_jira.",
+       "description": "Creating of an issue using the REST API",
+       "issuetype": {
+          "name": "Task"
+       }
+   }
+}
+

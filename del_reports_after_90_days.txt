@@ -1,0 +1,49 @@
+ram@ram-H97M-D3H:~/Del_reports_after_x_days$ cat del_reports_after_90_days.sh
+#!/bin/bash
+
+#Step 1 : Give soft link to /var/www/html/SHARE to SHARE in local_path(which is not part of root directory)
+#cd /var/www/html
+#sudo ln -s /home/user/local_path/SHARE SHARE
+
+#Step 2 : Give read write permission to SHARE(local_path)
+#cd /home/user/local_path
+#sudo chmod 777 -R SHARE
+
+#Step 3 : Change file owner and group to noraml user eg. ram
+#sudo chown -R ram:ram SHARE
+
+#Step 4 : Give read write permission to script(del_reports_after_90_days.sh)
+#sudo chmod 777 -R del_reports_after_90_days.sh
+
+#Step 5 : Change script(del_reports_after_90_days.sh) owner and group to noraml user eg. ram
+#sudo chown -R ram:ram del_reports_after_90_days.sh
+
+#Step 6 : Add new cron job to crontab
+#run command "crontab -e"
+#Add below one line command to crontab
+#"0 0 * * * bash /pwd/del_reports_after_90_days.sh"
+
+#explanation of above command("0 0 * * * bash /pwd/del_reports_after_90_days.sh"
+#An example command would be “0 0 * * * bash /pwd/del_reports_after_90_days.sh”. This would mean that the shell script will exactly execute at midnight every night)
+#* * * * * Command to be executed
+#- - - - -
+#| | | | |
+#| | | | +----- Day of week (0-7)
+#| | | +------- Month (1 - 12)
+#| | +--------- Day of month (1 - 31)
+#| +----------- Hour (0 - 23)
+#+------------- Min (0 - 59)
+
+#Step 7 : Check created cron job is present in cron jobs list
+#crontab -l
+#Output of crontab -l should be as below:
+#user@PC-XXXX-YYY:~/ crontab -l
+#0 0 * * * bash bash /pwd/del_reports_after_90_days.sh
+# Edit this file to introduce tasks to be run by cron.
+
+#Step 8 : Check logs of your cron job
+#cat /var/log/syslog | egrep del_reports_after_90_days.sh
+
+
+find /home/user/local_path/SHARE/daily/. -type d -mmin +129600 -name "*_reports" -exec rm -rf {} \;
+find /home/user/local_path/SHARE/pull/. -type d -mmin +129600 -name "*_reports" -exec rm -rf {} \;
