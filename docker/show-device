@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+import os
+import re
+
+def get_node(usb):
+    bus = usb.split()[1]
+    dev = usb.split()[3][:-1]
+    node = '/dev/bus/usb/%s/%s'%(bus,dev)
+    return node
+
+def get_pci_number(node):
+    pci_number = ""
+    node_udev_info = os.popen('udevadm info -a -n %s'%node).read()
+    node_m = re.search("looking at device '(.*)':", node_udev_info)
+    if node_m.group(1):
+        pci_number = node_m.group(1)
+    return pci_number
+
+def get_device(lsusb_list):
+    device_usb_list = []
+    for usb in lsusb_list:
+        if usb.find('8087') != -1:
+            device_usb_list.append(usb)
+    for device_usb in device_usb_list:
+        serial = ""
+        node = get_node(device_usb)
+        pci_number = get_pci_number(node)
+        pci_udev_info = os.popen('udevadm info -p %s -q property'%pci_number).read()
+        pci_m = re.search('ID_SERIAL_SHORT=(\w*)', pci_udev_info)
+        if pci_m:
+            serial = pci_m.group(1)
+        serial_space = 25-len(serial)
+        pci_space = 70-len(pci_number)
+        node_space = 30-len(node)
+        container_name = re.sub('/','A',pci_number)
+        container_name = re.sub(':','B',container_name)
+        if serial:
+            print serial+' '*serial_space+pci_number+' '*pci_space+node+' '*node_space+container_name
+
+def get_relay(lsusb_list):
+    relay_usb_list = []
+    for relay in lsusb_list:
+        if relay.find('10c4') != -1 or relay.find('04d8') != -1:
+            relay_usb_list.append(relay)
+    for relay_usb in relay_usb_list:
+        pci_number = ""
+        node = get_node(relay_usb)
+        node_pci_number = get_pci_number(node)
+        dev_name = os.popen("find /sys%s -name tty* | awk -F '/' '{print $NF}'|grep -v -w tty |sort -u"%node_pci_number).read()
+        dev_path = '/dev/%s'%dev_name.strip()
+        all_pci_number = get_pci_number(dev_path)
+        pci_number = node_pci_number+'/'+all_pci_number.split(node_pci_number)[1].split('/')[1]
+        dev_path_space = 25-len(dev_path)
+        pci_space = 70-len(pci_number)
+        node_space = 30-len(node)
+        print dev_path+' '*dev_path_space+pci_number+' '*pci_space+node+' '*node_space
+
+def get_camera(lsusb_list):
+    camera_usb_list     = []
+    for camera in lsusb_list:
+        if camera.find('046d') != -1:
+            camera_usb_list.append(camera)
+    for camera_usb in camera_usb_list:
+        node            = get_node(camera_usb)
+        node_pci_number = get_pci_number(node)
+        dev_name        = os.popen("find /sys%s -name video* | awk -F '/' '{print $NF}'| egrep  video[0-9]$ |sort -u" % node_pci_number).read()
+        full_pci_path   = '/dev/%s' % dev_name
+        real_pci_path   = node_pci_number + '/' + get_pci_number(dev_name).split('/')[-3]
+        dev_path_space  = 25 - len(dev_name)
+        pci_path_space  = 70 - len(real_pci_path)
+        node_space      = 30 - len(node)
+        print dev_name.strip() + ' '*dev_path_space + real_pci_path + ' '*pci_path_space + node + ' '* node_space
+#######################################
+
+def main():
+    print "NAME                     PCI NUMBER                                                            NODE                          CONTAINER NAME"
+    lsusb = os.popen('lsusb').read()
+    lsusb_list = lsusb.split('\n')
+    get_device(lsusb_list)
+    get_relay(lsusb_list)
+    get_camera(lsusb_list)
+if __name__ == '__main__':
+    main()

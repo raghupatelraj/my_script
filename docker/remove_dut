@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# When there is a USB device unplugged we check to see theat the container is running for this DUT
+
+# --> if not running, nothing to do
+# --> if there is a container running, remove this device's permission to the running container immediately
+
+# If the the same DUT is not mounted after 10 mins, then the devices is disconnected, and we stop the container
+# and for CTI they will siggnal testbot to cancel the recipe running for this DUT, and stop the container
+
+
+
+echo $1 $2 >> /tmp/remove_dut 
+
+
+
+
+
+CONTAINER=`sed -e 's/\//A/g' -e 's/:/B/g' /tmp/devpath`
+
+dockerState=`docker inspect --format='{{ .State.Running }}' $CONTAINER `
+
+if [ "$dockerState"x = "true"x ] 
+
+then
+    
+	# remove the access to the existing container
+
+	docker-enter $CONTAINER rm -fr /dev/bus/usb
+	dockerID=`docker inspect --format='{{.Id}}' $CONTAINER`
+	removenode=`cat /sys/fs/cgroup/devices/docker/$dockerID/devices.list |grep 189`    
+	echo "$removenode" > /sys/fs/cgroup/devices/docker/$dockerID/devices.deny
+  
+
+	start_t=`date +%s`
+   
+
+fi

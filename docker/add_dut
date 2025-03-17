@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# when there is a USB device plugged
+# we'd check whehter there is a container running for this DUT
+# --> if not, launch a docker daemon, with the device permission 
+# --> if yes, we'd add this device's permission to the running container
+CONTAINER=$6
+
+dockerState=`docker inspect --format='{{ .State.Running }}' $CONTAINER `
+
+if [ "$dockerState"x = "true"x ]
+
+#echo $1 $2 $3 $4 $5 $6 $dockerState >> /tmp/add_dut
+
+
+then
+#	echo "Starting Setup" > /tmp/add_dut_info    
+    	#add the access to the existing container   
+
+	busnum=$(printf "%03i" $1)
+    	devnum=$(printf "%03i" $2)
+    	docker exec $CONTAINER mkdir -p /dev/bus/usb/$busnum 
+    	docker exec $CONTAINER mknod --mode 0666 /dev/bus/usb/$busnum/$devnum c $3 $4 
+	dockerID=`docker inspect --format='{{.Id}}' $CONTAINER` 
+    	echo "c $3:$4 rwm" > /sys/fs/cgroup/devices/docker/devices.allow 
+    	echo "c $3:$4 rwm" > /sys/fs/cgroup/devices/docker/$dockerID/devices.allow 
+
+else
+    
+exit 1
+
+fi
